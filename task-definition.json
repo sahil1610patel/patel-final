@@ -1,0 +1,29 @@
+{
+    "family": "pal-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::600627364901:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::600627364901:role/ecsTaskRole",
+    "containerDefinitions": [
+      {
+        "name": "pal-container",
+        "image": "600627364901.dkr.ecr.us-east-1.amazonaws.com/pal-final-test:latest",
+        "portMappings": [
+          {
+            "containerPort": 5000,
+            "hostPort": 5000
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/pal-task",
+            "awslogs-region": "us-east-1",
+            "awslogs-stream-prefix": "ecs"
+          }
+        }
+      }
+    ]
+  }

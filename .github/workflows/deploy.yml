@@ -1,0 +1,39 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:  # Set environment variables at the job level
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Login to AWS ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-1  # Still needed for this step to ensure compatibility
+    - name: Mask Docker password
+      run: echo "::add-mask::${{ steps.login-ecr.outputs.docker_password }}"
+    - name: Build, tag, and push image to ECR
+      run: |
+        docker build -t 600627364901.dkr.ecr.us-east-1.amazonaws.com/pal-final-test:latest .
+        docker push 600627364901.dkr.ecr.us-east-1.amazonaws.com/pal-final-test:latest
+    - name: Update task definition with new image
+      run: |
+        jq '.containerDefinitions[0].image = "600627364901.dkr.ecr.us-east-1.amazonaws.com/pal-final-test:latest"' task-definition.json > updated-task-definition.json
+    - name: Deploy to ECS
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1.4.11
+      with:
+        task-definition: updated-task-definition.json
+        service: pal-service
+        cluster: pal-cluster
